@@ -5,11 +5,13 @@ import (
 	"golang.org/x/net/proxy"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Onion struct {
-	Address string
-	Alive   bool
+	Address   string
+	Alive     bool
+	WebServer string
 }
 
 type Onions []Onion
@@ -21,8 +23,6 @@ func NewOnions(target []string) Onions {
 	}
 	return onions
 }
-
-var target = []string{"http://jbwocj4f64dkfiwv.onion"}
 
 func Scan(onion Onion) {
 	// set Tor option
@@ -38,9 +38,24 @@ func Scan(onion Onion) {
 	}
 
 	response, err := client.Get(onion.Address)
+	defer response.Body.Close()
 
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Println(response)
+	onion.Alive = true
+	checkServerHeader(response, &onion)
+	fmt.Println(onion)
+}
+
+func checkServerHeader(response *http.Response, onion *Onion) {
+	server := response.Header["Server"][0]
+	if strings.Contains(server, "nginx") {
+		onion.WebServer = "nginx"
+	} else if strings.Contains(server, "Apache") {
+		onion.WebServer = "Apache"
+	} else {
+		onion.WebServer = "Unknown"
+	}
+
 }
