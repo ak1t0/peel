@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/ak1t0/peel/scanner"
 	"github.com/urfave/cli"
+	"log"
 	"os"
 )
 
@@ -31,13 +34,32 @@ var commandScan = cli.Command{
 	Usage:   "Scan onion service",
 	Aliases: []string{"s"},
 	Action:  doScan,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "f",
+			Usage: "Select log file",
+		},
+	},
 }
 
 func doScan(c *cli.Context) error {
-	var target = []string{"http://jbwocj4f64dkfiwv.onion"}
-	onions := scanner.NewOnions(target)
-	for _, onion := range onions {
-		scanner.Scan(onion)
+	filename := "data1.txt"
+	if c.String("f") != "" {
+		filename = c.String("f")
 	}
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	defer file.Close()
+	s := bufio.NewScanner(file)
+	var target []string
+	for s.Scan() {
+		target = append(target, "http://"+s.Text())
+	}
+	onions := scanner.NewOnions(target)
+	scanner.ScanOnions(&onions)
+	fmt.Println(onions)
 	return nil
 }
